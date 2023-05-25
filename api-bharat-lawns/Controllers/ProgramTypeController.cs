@@ -16,7 +16,7 @@ namespace api_bharat_lawns.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles.SuperUser)]
+    [Authorize(Roles = Roles.SuperUser)]
     public class ProgramTypeController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -30,6 +30,11 @@ namespace api_bharat_lawns.Controllers
         public async Task<IActionResult> GetAll(Pager<ProgramType> pager)
         {
             var programTypesQ = _context.ProgramTypes.AsQueryable();
+            var q = pager.Query?.Trim();
+            if (!string.IsNullOrEmpty(q))
+            {
+                programTypesQ = programTypesQ.Where(x => x.Name.Contains(q));
+            }
             var programType = await pager.Paginate(programTypesQ).ToListAsync();
             return Ok(new ResponseData<ProgramType>(programType, pager));
         }

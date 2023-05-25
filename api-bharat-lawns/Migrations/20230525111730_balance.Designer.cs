@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using api_bharat_lawns.Data;
 
@@ -11,9 +12,10 @@ using api_bharat_lawns.Data;
 namespace api_bharat_lawns.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230525111730_balance")]
+    partial class balance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +23,50 @@ namespace api_bharat_lawns.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
+
+            modelBuilder.Entity("api_bharat_lawns.Model.BookedFeature", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("FeatureId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("FeatureId");
+
+                    b.ToTable("BookedFeatures");
+                });
 
             modelBuilder.Entity("api_bharat_lawns.Model.Booking", b =>
                 {
@@ -83,8 +129,6 @@ namespace api_bharat_lawns.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FunctionTypeId");
-
-                    b.HasIndex("ProgramTypeId");
 
                     b.ToTable("Bookings");
                 });
@@ -280,21 +324,6 @@ namespace api_bharat_lawns.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ProgramTypes");
-                });
-
-            modelBuilder.Entity("BookingFeature", b =>
-                {
-                    b.Property<int>("BookingsId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FeaturesId")
-                        .HasColumnType("int");
-
-                    b.HasKey("BookingsId", "FeaturesId");
-
-                    b.HasIndex("FeaturesId");
-
-                    b.ToTable("BookingFeature");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -539,17 +568,36 @@ namespace api_bharat_lawns.Migrations
                         {
                             Id = "ef20c48e-3b60-44d7-bc9f-3b5973679bfb",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "0e1d60b3-bb2b-498f-bb9c-6eda017c1048",
+                            ConcurrencyStamp = "79181e92-7d7f-4e5e-bd88-a99b33861b9b",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedUserName = "SUPER_USER",
-                            PasswordHash = "AQAAAAEAACcQAAAAEK7HAMQVLL8VyTJnHR6+lo+trkuJsOSlk92Uibgyzc1pVa7BM5GbXWedCcmNJ9anSQ==",
+                            PasswordHash = "AQAAAAEAACcQAAAAEA7l9XTPQ0sZaI1yVgAxWHC5USpGNOkLY8SpGE1yuKvEhIW2zO7YO5zIwJr4MKZWnQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "ec2c3c60-5d3b-4e7a-86b9-847db6b44add",
+                            SecurityStamp = "22ccdc00-d772-420f-93ec-a1b34673206a",
                             TwoFactorEnabled = false,
                             UserName = "super_user",
                             Name = "Super User"
                         });
+                });
+
+            modelBuilder.Entity("api_bharat_lawns.Model.BookedFeature", b =>
+                {
+                    b.HasOne("api_bharat_lawns.Model.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api_bharat_lawns.Model.Feature", "Feature")
+                        .WithMany()
+                        .HasForeignKey("FeatureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Feature");
                 });
 
             modelBuilder.Entity("api_bharat_lawns.Model.Booking", b =>
@@ -560,15 +608,7 @@ namespace api_bharat_lawns.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("api_bharat_lawns.Model.ProgramType", "ProgramTypes")
-                        .WithMany()
-                        .HasForeignKey("ProgramTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("FunctionTypes");
-
-                    b.Navigation("ProgramTypes");
                 });
 
             modelBuilder.Entity("api_bharat_lawns.Model.Invoice", b =>
@@ -584,26 +624,9 @@ namespace api_bharat_lawns.Migrations
 
             modelBuilder.Entity("api_bharat_lawns.Model.PaymentReceipt", b =>
                 {
-                    b.HasOne("api_bharat_lawns.Model.Invoice", "Invoice")
+                    b.HasOne("api_bharat_lawns.Model.Invoice", null)
                         .WithMany("PaymentReciept")
                         .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("BookingFeature", b =>
-                {
-                    b.HasOne("api_bharat_lawns.Model.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("api_bharat_lawns.Model.Feature", null)
-                        .WithMany()
-                        .HasForeignKey("FeaturesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

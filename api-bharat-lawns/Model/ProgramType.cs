@@ -12,7 +12,7 @@ namespace api_bharat_lawns.Model
         public int NoOfHours { get; set; }
         public string? Description { get; set; }
         [Required(ErrorMessage = "Please enter program price")]
-        public Decimal Price { get; set; }
+        public decimal Price { get; set; }
     }
 }
 

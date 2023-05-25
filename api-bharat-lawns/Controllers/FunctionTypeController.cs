@@ -15,7 +15,7 @@ namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles.SuperUser)]
+    [Authorize(Roles = Roles.SuperUser)]
     public class FunctionTypeController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -29,6 +29,11 @@ namespace api_bharat_lawns.Controllers
         public async Task<IActionResult> GetAll(Pager<FunctionType> pager)
         {
             var functionTypesQ = _context.FunctionTypes.AsQueryable();
+            var q = pager.Query?.Trim();
+            if (!string.IsNullOrEmpty(q))
+            {
+                functionTypesQ = functionTypesQ.Where(x => x.Name.Contains(q));
+            }
             var functionType = await pager.Paginate(functionTypesQ).ToListAsync();
             return Ok(new ResponseData<FunctionType>(functionType, pager));
         }

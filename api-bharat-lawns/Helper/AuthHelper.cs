@@ -1,8 +1,10 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using api_bharat_lawns.Data;
 using api_bharat_lawns.Model;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace api_bharat_lawns.Helper
@@ -32,15 +34,20 @@ namespace api_bharat_lawns.Helper
                    new Claim(ClaimTypes.Name, user.UserName),
                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                };
-            if (user.Name != null)
-            {
-                authClaims.Add(new Claim(ClaimTypes.Name, user.Name));
-            }
+            //if (user.Name != null)
+            //{
+            //    authClaims.Add(new Claim(ClaimTypes.Name, user.Name));
+            //}
             foreach (var userRole in userRoles)
             {
                 authClaims.Add(new Claim(ClaimTypes.Role, userRole));
             }
             return authClaims;
+        }
+
+        public static async Task<AppUser> GetUser(ClaimsPrincipal user, AppDbContext context)
+        {
+            return await context.AppUsers.Where(x => x.UserName == user.Identity.Name).FirstOrDefaultAsync();
         }
 
     }

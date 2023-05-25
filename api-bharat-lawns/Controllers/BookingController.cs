@@ -6,6 +6,8 @@ using api_bharat_lawns.Data;
 using api_bharat_lawns.DTO;
 using api_bharat_lawns.Helper;
 using api_bharat_lawns.Model;
+using api_bharat_lawns.Response;
+using api_bharat_lawns.ViewModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +16,7 @@ using Microsoft.EntityFrameworkCore;
 namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
-    [Authorize(Roles.SuperUser)]
+    [Authorize(Roles = Roles.SuperUser)]
     [ApiController]
     public class BookingController : ControllerBase
     {
@@ -24,16 +26,18 @@ namespace api_bharat_lawns.Controllers
             _context = context;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Get(int page = 1, int pageLength = 10)
+        [HttpPost("get-all")]
+        public async Task<IActionResult> GetAll(Pager<Booking> pager)
         {
-            int skip = page > 1 ? (page - 1) * pageLength : 0;
-            // var bookings = _context.Bookings.Include(x => x.BookingInvoices).Include(x => x.FunctionTypes).
-            //     Skip(skip).
-            //     Take(pageLength).
-            //     OrderBy(x => x.FunctionDate);
-            // return Ok(bookings);
-            return Ok();
+            var bookingsQ = _context.Bookings.
+                AsQueryable();
+            var q = pager.Query;
+            if (!string.IsNullOrEmpty(q))
+            {
+                bookingsQ = bookingsQ.Where(x => x.Name.Contains(q) || x.MobileNo.Contains(q));
+            }
+            var bookings = await pager.Paginate(bookingsQ).ToListAsync();
+            return Ok(new ResponseData<Booking>(bookings, pager));
         }
 
         // GET api/<BookingController>/5
@@ -47,10 +51,41 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post(Booking booking)
+        public async Task<IActionResult> Post(BookingDTO modal)
         {
-            await _context.Bookings.AddAsync(booking);
-            await _context.SaveChangesAsync();
+            var user = await AuthHelper.GetUser(User, _context);
+            if (user == null)
+                return Unauthorized();
+            var booking = MapperConfig.Map<BookingDTO, Booking>(modal);
+            booking.CreatedById = user.Id;
+            var features = await _context.Features.Where(x => modal.FeatureIds.Contains(x.Id)).ToListAsync();
+            booking.Features = features;
+            var invoice = new Invoice
+            {
+                Booking = booking,
+                TotalAmount = booking.Amount,
+                Balance = booking.Balance,
+                Advance = modal.Advance,
+                Status = modal.Balance == 0 ? InvoiceStatus.Paid : modal.Advance > 0 ? InvoiceStatus.Partial : InvoiceStatus.UnPaid,
+                CreatedById = user.Id
+            };
+            var receipt = new PaymentReceipt
+            {
+                Invoice = invoice,
+                Amount = modal.Advance,
+                PaymentMode = PaymentMode.Cash,
+                PaymentType = PaymentType.Advance,
+                CreatedById = user.Id
+            };
+            await _context.PaymentReceipts.AddAsync(receipt);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
             return Ok(booking);
         }
 

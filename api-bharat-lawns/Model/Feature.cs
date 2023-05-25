@@ -11,5 +11,7 @@ namespace api_bharat_lawns.Model
         public string? Description { get; set; }
         [RequiredNum]
         public decimal Price { get; set; }
+
+        public List<Booking>? Bookings { get; set; }
     }
 }

@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using api_bharat_lawns.CustomeValidation;
+using AutoMapper.Features;
 
 namespace api_bharat_lawns.Model
 {
@@ -27,8 +28,16 @@ namespace api_bharat_lawns.Model
 
         [RequiredNum]
         public int FunctionTypeId { get; set; }
-
+        [RequiredNum]
         public FunctionType? FunctionTypes { get; set; }
+        public int ProgramTypeId { get; set; }
+        public ProgramType? ProgramTypes { get; set; }
+        public List<Feature>? Features { get; set; }
+        public decimal Price { get; set; }
+        public decimal Discount { get; set; }
+        [RequiredNum]
+        public decimal Amount { get; set; }
+        public decimal Balance { get; set; }
 
         public Invoice? Invoice { get; set; }
 

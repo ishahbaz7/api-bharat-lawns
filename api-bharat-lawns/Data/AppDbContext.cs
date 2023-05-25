@@ -19,8 +19,8 @@ namespace api_bharat_lawns.Data
         public DbSet<FunctionType> FunctionTypes { get; set; }
         public DbSet<ProgramType> ProgramTypes { get; set; }
         public DbSet<Feature> Features { get; set; }
-        public DbSet<BookedProgram> BookedPrograms { get; set; }
-        public DbSet<BookedFeature> BookedFeatures { get; set; }
+        // public DbSet<BookedProgram> BookedPrograms { get; set; }
+        // public DbSet<BookedFeature> BookedFeatures { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<PaymentReceipt> PaymentReceipts { get; set; }
 

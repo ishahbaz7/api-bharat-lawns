@@ -8,6 +8,7 @@ namespace api_bharat_lawns.Model
         public decimal Amount { get; set; }
 
         public int InvoiceId { get; set; }
+        public Invoice? Invoice { get; set; }
 
         public PaymentMode PaymentMode { get; set; }
 

@@ -14,8 +14,8 @@ using Microsoft.EntityFrameworkCore;
 namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
-    [Authorize(Roles.SuperUser)]
     [ApiController]
+    [Authorize(Roles = Roles.SuperUser)]
     public class FeatureController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -29,6 +29,11 @@ namespace api_bharat_lawns.Controllers
         public async Task<IActionResult> GetAll(Pager<Feature> pager)
         {
             var featuresQ = _context.Features.AsQueryable();
+            var q = pager.Query?.Trim();
+            if (!string.IsNullOrEmpty(q))
+            {
+                featuresQ = featuresQ.Where(x => x.Name.Contains(q));
+            }
             var feature = await pager.Paginate(featuresQ).ToListAsync();
             return Ok(new ResponseData<Feature>(feature, pager));
         }
