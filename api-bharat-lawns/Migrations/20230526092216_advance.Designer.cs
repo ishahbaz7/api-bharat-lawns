@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using api_bharat_lawns.Data;
 
@@ -11,9 +12,10 @@ using api_bharat_lawns.Data;
 namespace api_bharat_lawns.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230526092216_advance")]
+    partial class advance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -38,9 +40,6 @@ namespace api_bharat_lawns.Migrations
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("CancellationDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -545,13 +544,13 @@ namespace api_bharat_lawns.Migrations
                         {
                             Id = "ef20c48e-3b60-44d7-bc9f-3b5973679bfb",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "65b7f844-8d5a-4d9a-b0b9-614ed8d73936",
+                            ConcurrencyStamp = "98ca96e7-91c7-4611-b947-b53df419a4a6",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedUserName = "SUPER_USER",
-                            PasswordHash = "AQAAAAEAACcQAAAAEL/jW30wpuMkdrPyM1lWx8T/asyfR5lQ1BElcKh5rqh3uU573uoDeqWS+iM8929fqw==",
+                            PasswordHash = "AQAAAAEAACcQAAAAEMIprshJTQDEcX6PfFdbuDv2Qp3Rgv5e9CPpTwsX5r/sSK0E/lVE1Gd6rmLNoHe/SQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "954da06b-8bc7-4bf5-831d-1bab42f33b57",
+                            SecurityStamp = "e5bcfa14-6b64-4af1-bd57-4b02b557cc53",
                             TwoFactorEnabled = false,
                             UserName = "super_user",
                             Name = "Super User"

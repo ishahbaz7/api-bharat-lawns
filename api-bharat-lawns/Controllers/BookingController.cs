@@ -30,6 +30,9 @@ namespace api_bharat_lawns.Controllers
         public async Task<IActionResult> GetAll(Pager<Booking> pager)
         {
             var bookingsQ = _context.Bookings.
+                Include(x => x.Features).
+                Include(x => x.FunctionTypes).
+                Include(x => x.ProgramTypes).
                 AsQueryable();
             var q = pager.Query;
             if (!string.IsNullOrEmpty(q))
@@ -44,7 +47,11 @@ namespace api_bharat_lawns.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
-            var booking = _context.Bookings.FirstOrDefault(i => i.Id == id);
+            var booking = _context.Bookings.
+            Include(x => x.Features).
+            Include(x => x.FunctionTypes).
+            Include(x => x.ProgramTypes).
+            FirstOrDefault(i => i.Id == id);
             if (booking == null)
                 return NotFound();
             return Ok(booking);
@@ -53,13 +60,22 @@ namespace api_bharat_lawns.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(BookingDTO modal)
         {
+            if (modal.MealType != MealType.NonVeg && modal.MealType != MealType.Veg)
+            {
+                ModelState.AddModelError("MealType", "Please Select Meal Type");
+                return BadRequest(new ResponseErrors(ModelState.ToSerializedDictionary()));
+            }
             var user = await AuthHelper.GetUser(User, _context);
             if (user == null)
                 return Unauthorized();
             var booking = MapperConfig.Map<BookingDTO, Booking>(modal);
             booking.CreatedById = user.Id;
-            var features = await _context.Features.Where(x => modal.FeatureIds.Contains(x.Id)).ToListAsync();
-            booking.Features = features;
+            booking.Status = Status.Active;
+            if (modal.FeatureIds?.Length > 0)
+            {
+                var features = await _context.Features.Where(x => modal.FeatureIds.Contains(x.Id)).ToListAsync();
+                booking.Features = features;
+            }
             var invoice = new Invoice
             {
                 Booking = booking,
@@ -90,31 +106,42 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, Booking updatedBooking)
+        public async Task<IActionResult> Put(int id, BookingDTO modal)
         {
-            if (id != updatedBooking.Id)
+            var user = await AuthHelper.GetUser(User, _context);
+            if (user == null)
+                return Unauthorized();
+
+            var features = await _context.Features.Where(x => modal.FeatureIds.Contains(x.Id)).ToListAsync();
+            if (id != modal.Id)
                 return BadRequest();
             var booking = _context.Bookings.
-                Include(x => x.FunctionTypes).
+                Include(x => x.Features).
                 FirstOrDefault(x => x.Id == id);
-
             if (booking == null)
                 return NotFound();
-
-            // booking.Name = updatedBooking.Name;
-            // booking.FunctionDate = updatedBooking.FunctionDate;
-            // booking.MobileNo = updatedBooking.MobileNo;
-            // booking.StageDecoration = updatedBooking.StageDecoration;
-            // booking.Anjuman = updatedBooking.Anjuman;
-            // booking.Mandap = updatedBooking.Mandap;
-            // booking.Entry = updatedBooking.Entry;
-            // booking.Chowrie = updatedBooking.Chowrie;
-            // booking.CateringService = updatedBooking.CateringService;
-            // booking.OtherFeatures = updatedBooking.OtherFeatures;
-            // booking.ProgramTimings = updatedBooking.ProgramTimings;
-            // booking.MealType = updatedBooking.MealType;
-            // booking.FunctionTypeId = updatedBooking.FunctionTypes.Id;
-            await _context.SaveChangesAsync();
+            booking.Features.RemoveAll(x => booking.Features.Any(y => y.Id == x.Id));
+            booking.Features = features;
+            booking.FunctionTypeId = modal.FunctionTypeId;
+            booking.ProgramTypeId = modal.ProgramTypeId;
+            booking.MealType = modal.MealType;
+            booking.Name = modal.Name;
+            booking.MobileNo = modal.MobileNo;
+            booking.FunctionDate = modal.FunctionDate;
+            booking.UpdatedById = user.Id;
+            booking.UpdatedAt = DateTime.Now;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            var programType = await _context.ProgramTypes.Where(x => x.Id == booking.ProgramTypeId).FirstOrDefaultAsync();
+            var functionType = await _context.FunctionTypes.Where(x => x.Id == booking.FunctionTypeId).FirstOrDefaultAsync();
+            booking.ProgramTypes = programType;
+            booking.FunctionTypes = booking.FunctionTypes;
             return Ok(booking);
         }
 
@@ -131,16 +158,14 @@ namespace api_bharat_lawns.Controllers
             return Ok(booking);
         }
 
-        [HttpPut("cancel-booking/{id}")]
+        [HttpPut("cancel/{id}")]
         public async Task<IActionResult> CancelBooking(int id)
         {
-            if (id == 0)
-                return NotFound();
-
             var booking = _context.Bookings.FirstOrDefault(i => i.Id == id);
             if (booking == null)
                 return NotFound();
             booking.Status = Status.Cancelled;
+            booking.CancellationDate = DateTime.Now;
             await _context.SaveChangesAsync();
 
             return Ok("ok");

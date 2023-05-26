@@ -25,6 +25,7 @@ namespace api_bharat_lawns.Model
         public MealType MealType { get; set; }
 
         public Status Status { get; set; } = Status.Active;
+        public DateTime? CancellationDate { get; set; }
 
         [RequiredNum]
         public int FunctionTypeId { get; set; }
@@ -37,6 +38,7 @@ namespace api_bharat_lawns.Model
         public decimal Discount { get; set; }
         [RequiredNum]
         public decimal Amount { get; set; }
+        public decimal Advance { get; set; }
         public decimal Balance { get; set; }
 
         public Invoice? Invoice { get; set; }
@@ -48,7 +50,7 @@ namespace api_bharat_lawns.Model
 
     public enum MealType
     {
-        Veg,
+        Veg = 1,
         NonVeg
     }
 
