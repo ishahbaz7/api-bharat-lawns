@@ -9,11 +9,7 @@ namespace api_bharat_lawns.Response
             this.Pager = pager;
         }
 
-        public ResponseData()
-        {
-
-        }
-
+      
         public List<T>? Data { get; set; }
 
         public Pager? Pager { get; set; }

@@ -40,7 +40,9 @@ namespace api_bharat_lawns.Model
         public decimal Amount { get; set; }
         public decimal Advance { get; set; }
         public decimal Balance { get; set; }
-
+        public int InvoiceNo { get; set; }
+        [RequiredNum]
+        public int  InvoiceId { get; set; }
         public Invoice? Invoice { get; set; }
 
 

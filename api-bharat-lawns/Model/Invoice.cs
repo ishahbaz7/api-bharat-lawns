@@ -8,6 +8,8 @@ namespace api_bharat_lawns.Model
     {
         public int Id { get; set; }
 
+        public int? InvoiceNo { get; set; }
+
         [RequiredNum]
         public decimal TotalAmount { get; set; }
 
@@ -20,9 +22,6 @@ namespace api_bharat_lawns.Model
         public decimal Balance { get; set; }
 
         public InvoiceStatus Status { get; set; }
-
-        [RequiredNum]
-        public int BookingId { get; set; }
 
         public Booking? Booking { get; set; }
 

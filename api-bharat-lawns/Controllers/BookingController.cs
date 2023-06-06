@@ -27,14 +27,26 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPost("get-all")]
-        public async Task<IActionResult> GetAll(Pager<Booking> pager)
+        public async Task<IActionResult> GetAll(Pager<Booking> pager, DateTime? month, bool? pending)
         {
             var bookingsQ = _context.Bookings.
                 Include(x => x.Features).
                 Include(x => x.FunctionTypes).
                 Include(x => x.ProgramTypes).
                 AsQueryable();
-            var q = pager.Query;
+            if (month != null)
+            {
+                var firstDay = new DateTime(month.Value.Year, month.Value.Month, 1);
+                var lastDay = firstDay.AddMonths(1).AddDays(-1);
+                bookingsQ = bookingsQ.Where(x =>
+                x.FunctionDate.Date >= firstDay &&
+                x.FunctionDate.Date <= lastDay);
+            }
+            else if (pending == true)
+            {
+                bookingsQ = bookingsQ.Where(x => x.Balance > 0 && x.Status != Status.Cancelled);
+            }
+            var q = pager.Query.Trim();
             if (!string.IsNullOrEmpty(q))
             {
                 bookingsQ = bookingsQ.Where(x => x.Name.Contains(q) || x.MobileNo.Contains(q));
@@ -60,24 +72,50 @@ namespace api_bharat_lawns.Controllers
         [HttpPost]
         public async Task<IActionResult> Post(BookingDTO modal)
         {
-            if (modal.MealType != MealType.NonVeg && modal.MealType != MealType.Veg)
-            {
-                ModelState.AddModelError("MealType", "Please Select Meal Type");
-                return BadRequest(new ResponseErrors(ModelState.ToSerializedDictionary()));
-            }
             var user = await AuthHelper.GetUser(User, _context);
             if (user == null)
                 return Unauthorized();
+            if (modal.MealType != MealType.NonVeg && modal.MealType != MealType.Veg)
+                ModelState.AddModelError("MealType", "Please Select Meal Type");
+            var programType = await _context.ProgramTypes.FindAsync(modal.ProgramTypeId);
+            var isBookings = await _context.Bookings.Where(x => x.FunctionDate.Date == modal.FunctionDate).Include(x => x.ProgramTypes).ToListAsync();
+
+            if (isBookings != null && isBookings.Count > 0)
+            {
+                if (isBookings.Count == 2)
+                    ModelState.AddModelError("FunctionDate", "Booking already exist for this date");
+                else
+                {
+                    var isBooking = isBookings.FirstOrDefault();
+                    if (isBooking.ProgramTypes.Name.ToLower() == "full day" ||
+                        programType.Name.ToLower() == "full day")
+                        ModelState.AddModelError("FunctionDate", "Booking already exist for this date");
+                    if (isBooking.ProgramTypes.Id == modal.ProgramTypeId)
+                        ModelState.AddModelError("ProgramTypeId", "Booking already exist for this slot");
+                }
+            }
+
+            if (!ModelState.IsValid)
+                return BadRequest(new ResponseErrors(ModelState.ToSerializedDictionary()));
+
+            var invNo = 1;
+            var lastInv = await _context.Invoices.OrderByDescending(x => x.InvoiceNo).FirstOrDefaultAsync();
+            if (lastInv != null && lastInv.InvoiceNo != null)
+                invNo = (int)lastInv.InvoiceNo + 1;
             var booking = MapperConfig.Map<BookingDTO, Booking>(modal);
             booking.CreatedById = user.Id;
             booking.Status = Status.Active;
+            booking.InvoiceNo = invNo;
             if (modal.FeatureIds?.Length > 0)
             {
                 var features = await _context.Features.Where(x => modal.FeatureIds.Contains(x.Id)).ToListAsync();
                 booking.Features = features;
             }
+
+
             var invoice = new Invoice
             {
+                InvoiceNo = invNo,
                 Booking = booking,
                 TotalAmount = booking.Amount,
                 Balance = booking.Balance,
@@ -102,7 +140,7 @@ namespace api_bharat_lawns.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            return Ok(booking);
+            return Ok(new { booking, receipt });
         }
 
         [HttpPut("{id}")]
@@ -169,6 +207,101 @@ namespace api_bharat_lawns.Controllers
             await _context.SaveChangesAsync();
 
             return Ok("ok");
+        }
+
+        [HttpGet("get-events/{date}")]
+        public async Task<IActionResult> GetEventsByMonth(DateTime date)
+        {
+            var start = new DateTime(date.Year, date.Month, 1).AddDays(-7);
+            var end = start.AddMonths(1).AddDays(14);
+            var bookings = await _context.Bookings.Where(x =>
+                x.FunctionDate.Date > start &&
+                x.FunctionDate.Date < end &&
+                x.Status != Status.Cancelled).
+                Include(x => x.ProgramTypes).
+                Select(x => new EventDto
+                {
+                    Id = x.Id,
+                    Title = x.ProgramTypes.Name,
+                    Start = x.FunctionDate,
+                    End = x.FunctionDate,
+                    Status = x.Status
+                }).OrderBy(x => x.Start).ToListAsync();
+            return Ok(bookings);
+        }
+
+        [HttpPost("pending-balance/{id}/{amount}")]
+        public async Task<ActionResult> CollectPendingBalance(int id, decimal amount)
+        {
+            var booking = await _context.Bookings.Where(x => x.Id == id).Include(x => x.Invoice).FirstOrDefaultAsync();
+            if (amount > booking.Balance || amount <= 0)
+                ModelState.AddModelError("amount", "Amount cannot be greater than balance or less than 0");
+            if (booking.Status == Status.Cancelled)
+                ModelState.AddModelError("amount", "This booking was cancelled");
+
+            if (!ModelState.IsValid)
+                return BadRequest(new ResponseErrors(ModelState.ToSerializedDictionary()));
+            var user = await AuthHelper.GetUser(User, _context);
+            var receipt = new PaymentReceipt
+            {
+                Amount = amount,
+                CreatedAt = DateTime.Now,
+                CreatedById = user.Id,
+                InvoiceId = booking.Invoice.Id,
+                PaymentType = PaymentType.Partial
+            };
+            booking.Balance -= amount;
+            booking.Invoice.Balance -= amount;
+            try
+            {
+                await _context.PaymentReceipts.AddAsync(receipt);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            return Ok(receipt);
+        }
+
+        [HttpGet("get-receipts/{bookingId}")]
+        public async Task<IActionResult> GetReciepts(int bookingId)
+        {
+            var receipts = await _context.PaymentReceipts.OrderByDescending(x => x.CreatedAt).Where(x => x.Invoice.Booking.Id == bookingId).
+            Select(x => new
+            {
+                Id = x.Id,
+                Date = x.CreatedAt,
+                Amount = x.Amount,
+                BookingName = x.Invoice.Booking.Name,
+                InvoiceNo = x.Invoice.InvoiceNo,
+                BookingId = x.Invoice.Booking.Id,
+            })
+            .ToListAsync();
+
+            return Ok(receipts);
+        }
+
+        [HttpGet("print-receipt/{receiptId}")]
+        public async Task<ActionResult> PrintReceipt(int receiptId)
+        {
+            var receipt = await _context.PaymentReceipts.Where(x => x.Id == receiptId).
+                Select(a => new
+                {
+                    ReceiptDate = a.CreatedAt,
+                    Name = a.Invoice.Booking.Name,
+                    MobileNo = a.Invoice.Booking.MobileNo,
+                    FunctionDate = a.Invoice.Booking.FunctionDate,
+                    ProgramTiming = a.Invoice.Booking.ProgramTypes.Name,
+                    InvoiceNo = a.Invoice.InvoiceNo,
+                    ReceiptNo = a.Id,
+                    Features = a.Invoice.Booking.Features,
+                    OtherFeatures = a.Invoice.Booking.OtherFeatures,
+                    Amount = a.Amount,
+                    PaymentType = a.PaymentType
+
+                }).FirstOrDefaultAsync();
+            return Ok(receipt);
         }
     }
 
