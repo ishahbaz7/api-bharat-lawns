@@ -37,11 +37,11 @@ namespace api_bharat_lawns.CustomeValidation
         }
     }
 
-    public class MobileNoAttribute: ValidationAttribute
+    public class MobileNoAttribute : ValidationAttribute
     {
         public override bool IsValid(object? value)
         {
-            if(value == null)
+            if (value == null)
             {
                 return true;
             }
@@ -50,7 +50,7 @@ namespace api_bharat_lawns.CustomeValidation
             // Regular expression to validate Indian mobile number without country code
             var regex = new Regex(@"^[6-9]\d{9}$");
 
-            return regex.IsMatch(mobileNumber);
+            return string.IsNullOrEmpty(mobileNumber) ? true : regex.IsMatch(mobileNumber);
         }
     }
 }

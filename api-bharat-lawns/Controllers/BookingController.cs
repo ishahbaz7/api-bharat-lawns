@@ -16,7 +16,6 @@ using Microsoft.EntityFrameworkCore;
 namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
-    [Authorize(Roles = Roles.SuperUser)]
     [ApiController]
     public class BookingController : ControllerBase
     {
@@ -27,6 +26,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPost("get-all")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}, {Roles.ReportsRole}")]
         public async Task<IActionResult> GetAll(Pager<Booking> pager, DateTime? month, bool? pending)
         {
             var bookingsQ = _context.Bookings.
@@ -57,6 +57,7 @@ namespace api_bharat_lawns.Controllers
 
         // GET api/<BookingController>/5
         [HttpGet("{id}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> Get(int id)
         {
             var booking = _context.Bookings.
@@ -70,19 +71,21 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> Post(BookingDTO modal)
         {
             var user = await AuthHelper.GetUser(User, _context);
             if (user == null)
                 return Unauthorized();
+
             if (modal.MealType != MealType.NonVeg && modal.MealType != MealType.Veg)
                 ModelState.AddModelError("MealType", "Please Select Meal Type");
             var programType = await _context.ProgramTypes.FindAsync(modal.ProgramTypeId);
-            var isBookings = await _context.Bookings.Where(x => x.FunctionDate.Date == modal.FunctionDate).Include(x => x.ProgramTypes).ToListAsync();
+            var isBookings = await _context.Bookings.Where(x => x.FunctionDate.Date == modal.FunctionDate.Date).Include(x => x.ProgramTypes).ToListAsync();
 
             if (isBookings != null && isBookings.Count > 0)
             {
-                if (isBookings.Count == 2)
+                if (isBookings.Count >= 2)
                     ModelState.AddModelError("FunctionDate", "Booking already exist for this date");
                 else
                 {
@@ -94,6 +97,9 @@ namespace api_bharat_lawns.Controllers
                         ModelState.AddModelError("ProgramTypeId", "Booking already exist for this slot");
                 }
             }
+
+            if (modal.Balance > modal.Amount)
+                ModelState.AddModelError("Balance", "Balance cannot be greater than amount");
 
             if (!ModelState.IsValid)
                 return BadRequest(new ResponseErrors(ModelState.ToSerializedDictionary()));
@@ -144,6 +150,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> Put(int id, BookingDTO modal)
         {
             var user = await AuthHelper.GetUser(User, _context);
@@ -184,6 +191,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> Delete(int id)
         {
             var booking = _context.Bookings.FirstOrDefault(x => x.Id == id);
@@ -197,6 +205,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPut("cancel/{id}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> CancelBooking(int id)
         {
             var booking = _context.Bookings.FirstOrDefault(i => i.Id == id);
@@ -210,6 +219,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpGet("get-events/{date}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> GetEventsByMonth(DateTime date)
         {
             var start = new DateTime(date.Year, date.Month, 1).AddDays(-7);
@@ -231,6 +241,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpPost("pending-balance/{id}/{amount}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<ActionResult> CollectPendingBalance(int id, decimal amount)
         {
             var booking = await _context.Bookings.Where(x => x.Id == id).Include(x => x.Invoice).FirstOrDefaultAsync();
@@ -265,6 +276,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpGet("get-receipts/{bookingId}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<IActionResult> GetReciepts(int bookingId)
         {
             var receipts = await _context.PaymentReceipts.OrderByDescending(x => x.CreatedAt).Where(x => x.Invoice.Booking.Id == bookingId).
@@ -283,6 +295,7 @@ namespace api_bharat_lawns.Controllers
         }
 
         [HttpGet("print-receipt/{receiptId}")]
+        [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
         public async Task<ActionResult> PrintReceipt(int receiptId)
         {
             var receipt = await _context.PaymentReceipts.Where(x => x.Id == receiptId).

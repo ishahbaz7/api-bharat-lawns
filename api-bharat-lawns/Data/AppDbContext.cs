@@ -37,6 +37,11 @@ namespace api_bharat_lawns.Data
         private readonly string superUserRoleId = "69365cb4-4e73-451c-afa0-ab4052246ab3";
         private readonly string guestRoleId = "09ecccf8-35d3-431d-bdf2-0d491f3aa87c";
 
+        private readonly string blBookingUserId = "49b8420d-f99b-4530-8d27-6fcd0bbf4321";
+        private readonly string blBookingRoleId = "0553d90e-03ee-48ce-9bed-3808d0c53345";
+        private readonly string blReportsUserId = "cde5cf9f-fb79-4e1e-8afb-37c58cf6885a";
+        private readonly string blReportRoleId = "f4b56fbb-b881-4e61-a118-ea3946ca8d40";
+
         private void SeedRoles(ModelBuilder builder)
         {
             builder.Entity<IdentityRole>().HasData(
@@ -53,7 +58,21 @@ namespace api_bharat_lawns.Data
                     Name = "guest",
                     NormalizedName = "GUEST",
                     ConcurrencyStamp = "0d491f3aa87c"
-                }
+                },
+                 new IdentityRole
+                 {
+                     Id = blBookingRoleId,
+                     Name = "booking_role",
+                     NormalizedName = "BOOKING_ROLE",
+                     ConcurrencyStamp = "3808d0c53345"
+                 },
+                  new IdentityRole
+                  {
+                      Id = blReportRoleId,
+                      Name = "reports_role",
+                      NormalizedName = "REPORTS_ROLE",
+                      ConcurrencyStamp = "ea3946ca8d40"
+                  }
             );
         }
 
@@ -68,6 +87,22 @@ namespace api_bharat_lawns.Data
                     NormalizedUserName = "SUPER_USER",
                     Name = "Super User",
                     PasswordHash = hasher.HashPassword(null, "Ids@1234")
+                },
+                new AppUser
+                {
+                    Id = blBookingUserId,
+                    UserName = "bl-booking",
+                    NormalizedUserName = "BL-BOOKING",
+                    Name = "Booking User",
+                    PasswordHash = hasher.HashPassword(null, "Bl@1234")
+                },
+                new AppUser
+                {
+                    Id = blReportsUserId,
+                    UserName = "bl-reports",
+                    NormalizedUserName = "BL-REPORTS",
+                    Name = "Reports User",
+                    PasswordHash = hasher.HashPassword(null, "Bl@1234")
                 });
         }
         private void SeedUserRoles(ModelBuilder builder)
@@ -76,6 +111,8 @@ namespace api_bharat_lawns.Data
             {
                 //super user roles
                 new IdentityUserRole<string>() { RoleId = superUserRoleId, UserId = superUserId },
+                new IdentityUserRole<string>() { RoleId = blBookingRoleId, UserId = blBookingUserId },
+                new IdentityUserRole<string>() { RoleId = blReportRoleId, UserId = blReportsUserId },
             };
 
             builder.Entity<IdentityUserRole<string>>().HasData(userRoles);

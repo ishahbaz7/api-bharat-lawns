@@ -15,7 +15,7 @@ namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = Roles.SuperUser)]
+    [Authorize(Roles = $"{Roles.BookingRole}, {Roles.SuperUser}")]
     public class FeatureController : ControllerBase
     {
         private readonly AppDbContext _context;

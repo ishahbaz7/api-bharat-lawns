@@ -8,6 +8,7 @@ using api_bharat_lawns.DTO;
 using api_bharat_lawns.Helper;
 using api_bharat_lawns.Model;
 using api_bharat_lawns.Response;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ namespace api_bharat_lawns.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = $"{Roles.ReportsRole}, {Roles.SuperUser}")]
     public class ReportsController : ControllerBase
     {
         private readonly AppDbContext _context;
